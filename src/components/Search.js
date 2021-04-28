@@ -3,8 +3,17 @@ import axios from 'axios';
 
 const Search = () => {
     const [term, setTerm] = useState('programming');
-    const [results, setResults] = useState([]);
-    console.log(results);
+    const [debouncedTerm, setDebouncedTerm] = useState(term)
+    const [results, setResults] = useState([]);    
+    useEffect(() => {
+        const timerId = setTimeout(() => {
+            setDebouncedTerm(term)
+        }, 500);
+        return () => {
+            clearTimeout(timerId);
+        }
+    }, [term]);
+
     useEffect(() => {
         const search = async () => {
            const {data} = await axios.get('https://en.wikipedia.org/w/api.php', {
@@ -13,13 +22,33 @@ const Search = () => {
                     list: 'search',
                     origin: '*',
                     format: 'json',
-                    srsearch: term
+                    srsearch: debouncedTerm
                 }
            })
             setResults(data.query.search)
         }
-        search();
-    },[term])
+        if (debouncedTerm) {
+          search()  
+        }                
+    }, [debouncedTerm])
+    
+    const renderedResults = results.map((result) => {
+        return (
+          <React.Fragment key={result.pageid}>
+                <div className="item">
+                    <div className="right floated content">
+                        <a className="ui button" href={`https://en.wikipedia.org?curid=${result.pageid}`}>Go</a>
+                    </div>
+            <div className="content">
+                <div className="header">
+                    {result.title}
+                        </div>
+                        <span dangerouslySetInnerHTML={{__html: result.snippet}}></span>                
+              </div>
+            </div>
+        </React.Fragment>  
+        );        
+    })
     return (
         <div>
        <div className="ui form">
@@ -33,7 +62,10 @@ const Search = () => {
                             onChange={(e)=> setTerm(e.target.value) }/>
              </div>
            </div>
-         </div>
+            </div>
+            <div className="ui celled list">
+                {renderedResults}
+            </div>
        </div>
     );
 }
